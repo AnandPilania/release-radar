@@ -29,7 +29,7 @@
     },
     "dependencies": {
         "fast-xml-parser": "^5.11.2",
-        "imapflow": "^1.0.164",
+        "imapflow": "^2.10.0",
         "mailparser": "^3.14.1",
         "nodemailer": "^10.3.1"
     },

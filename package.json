@@ -38,7 +38,7 @@
         "@types/node": "^22.0.0",
         "@types/nodemailer": "^8.0.2",
         "tsx": "^4.19.0",
-        "typescript": "^5.6.0"
+        "typescript": "^7.0.2"
     },
     "description": "Release and security alerts for the stack you run: PHP, Node.js, Java, libraries. Pushed to Slack, Telegram, email and WhatsApp the moment they are published.",
     "license": "MIT",

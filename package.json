@@ -1,0 +1,66 @@
+{
+    "name": "release-radar",
+    "version": "0.0.1",
+    "type": "module",
+    "bin": {
+        "release-radar": "dist/cli.js"
+    },
+    "files": [
+        "dist",
+        "sources.json",
+        ".env.example",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "dev": "tsx src/index.ts",
+        "start": "node dist/index.js",
+        "once": "node dist/index.js --once",
+        "build": "tsc -p tsconfig.build.json",
+        "demo": "tsx src/index.ts --dry --once --replay 2",
+        "dry": "tsx src/index.ts --dry",
+        "test-alert": "tsx src/index.ts --test-alert",
+        "check:feeds": "tsx src/check-feeds.ts",
+        "typecheck": "tsc --noEmit",
+        "test": "node --import tsx --test \"test/*.test.ts\"",
+        "verify": "npm run typecheck && npm test && npm run build && npm audit --omit=dev --audit-level=high",
+        "scan": "tsx src/cli.ts scan",
+        "prepublishOnly": "npm run verify"
+    },
+    "dependencies": {
+        "fast-xml-parser": "^5.11.2",
+        "imapflow": "^1.0.164",
+        "mailparser": "^3.14.1",
+        "nodemailer": "^10.3.1"
+    },
+    "devDependencies": {
+        "@types/mailparser": "^3.4.5",
+        "@types/node": "^22.0.0",
+        "@types/nodemailer": "^8.0.2",
+        "tsx": "^4.19.0",
+        "typescript": "^5.6.0"
+    },
+    "description": "Release and security alerts for the stack you run: PHP, Node.js, Java, libraries. Pushed to Slack, Telegram, email and WhatsApp the moment they are published.",
+    "license": "MIT",
+    "keywords": [
+        "security",
+        "cve",
+        "release-alerts",
+        "rss",
+        "atom",
+        "github-webhook",
+        "imap",
+        "slack",
+        "telegram",
+        "whatsapp",
+        "self-hosted"
+    ],
+    "engines": {
+        "node": ">=22"
+    },
+    "author": {
+        "name": "Anand Pilania",
+        "email": "pilaniaanand@gmail.com",
+        "url": "https://github.com/anandpilania"
+    }
+}

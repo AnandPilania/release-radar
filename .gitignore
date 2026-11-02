@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+state*.json
+*.tmp
+*.corrupt-*
+*.log
+.DS_Store
+*_CHECKLIST.md

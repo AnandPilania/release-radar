@@ -1,0 +1,81 @@
+{
+  "pollSeconds": 60,
+  "securityKeywords": [
+    "CVE-",
+    "security",
+    "vulnerab",
+    "remote code",
+    "RCE",
+    "out-of-bounds",
+    "advisory",
+    "exploit"
+  ],
+  "webhook": {
+    "port": 8787,
+    "notify": "all"
+  },
+  "mail": {
+    "rules": [
+      {
+        "name": "php.internals / announce",
+        "listId": "php",
+        "notify": "security"
+      },
+      {
+        "name": "GitHub watch",
+        "from": "notifications@github.com",
+        "subjectContains": "Release",
+        "notify": "all"
+      },
+      {
+        "name": "oss-security",
+        "listId": "oss-security",
+        "notify": "all"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "name": "PHP",
+      "type": "feed",
+      "url": "https://www.php.net/feed.atom",
+      "notify": "all"
+    },
+    {
+      "name": "Node.js security",
+      "type": "feed",
+      "url": "https://nodejs.org/en/feed/vulnerability.xml",
+      "notify": "all"
+    },
+    {
+      "name": "Node.js releases",
+      "type": "feed",
+      "url": "https://nodejs.org/en/feed/releases.xml",
+      "notify": "security"
+    },
+    {
+      "name": "OpenJDK tags",
+      "type": "feed",
+      "url": "https://github.com/openjdk/jdk/tags.atom",
+      "notify": "all"
+    },
+    {
+      "name": "Brotli",
+      "type": "feed",
+      "url": "https://github.com/google/brotli/releases.atom",
+      "notify": "all"
+    },
+    {
+      "name": "Laravel framework",
+      "type": "feed",
+      "url": "https://github.com/laravel/framework/releases.atom",
+      "notify": "security"
+    },
+    {
+      "name": "CISA KEV",
+      "type": "kev",
+      "url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+      "notify": "all"
+    }
+  ]
+}

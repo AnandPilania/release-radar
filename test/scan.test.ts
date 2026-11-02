@@ -90,10 +90,8 @@ test("readProject: no lockfile falls back to installed version, then range floor
   assert.match(notes, /lowest version/);
 });
 
-test("readProject: warns about unsupported yarn.lock; errors when nothing to read or invalid JSON", async () => {
-  const y = await readProject(await makeProject({ "package.json": { name: "y", dependencies: { a: "^1.0.0" } }, "yarn.lock": "# yarn" }));
-  assert.match(y.notes[0], /yarn\.lock.*not supported/);
-  await assert.rejects(readProject(await makeProject({ "README.md": "hi" })), /No package\.json or composer\.json/);
+test("readProject: errors when nothing to read or invalid JSON", async () => {
+  await assert.rejects(readProject(await makeProject({ "README.md": "hi" })), /No supported dependency files found/);
   await assert.rejects(readProject(await makeProject({ "package.json": "{oops" })), /package\.json is not valid JSON/);
 });
 

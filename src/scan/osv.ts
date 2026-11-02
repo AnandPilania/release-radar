@@ -34,11 +34,28 @@ async function api(path: string, body?: unknown, attempts = 3): Promise<any> {
   }
 }
 
-/** Ascending numeric-ish version compare, good enough for ordering "fixed in" suggestions. */
+const parseVersion = (v: string) => {
+  const s = v.replace(/^v/i, "").split("+")[0];
+  const m = s.match(/^(\d+(?:\.\d+)*)(.*)$/);
+  return m ? { nums: m[1].split(".").map(Number), pre: m[2].replace(/^[-._]/, "") } : { nums: [0], pre: s };
+};
+
+/** Ascending version compare for "fixed in" suggestions: numeric parts first; a pre-release (1.0.0-beta.1, 1.0.0rc1) sorts before its release; ".postN" sorts after it. */
 export function cmpVersion(a: string, b: string): number {
-  const p = (v: string) => v.replace(/^v/i, "").split(/[.\-+]/).map((x) => parseInt(x, 10) || 0);
-  const [x, y] = [p(a), p(b)];
-  for (let i = 0; i < Math.max(x.length, y.length); i++) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) - (y[i] ?? 0);
+  const [x, y] = [parseVersion(a), parseVersion(b)];
+  for (let i = 0; i < Math.max(x.nums.length, y.nums.length); i++) if ((x.nums[i] ?? 0) !== (y.nums[i] ?? 0)) return (x.nums[i] ?? 0) - (y.nums[i] ?? 0);
+  if (x.pre === y.pre) return 0;
+  const rank = (p: string) => (p === "" ? 1 : /^post/i.test(p) ? 2 : 0);
+  if (rank(x.pre) !== rank(y.pre)) return rank(x.pre) - rank(y.pre);
+  const ids = (p: string) => p.split(/[.\-_]/);
+  const [i, j] = [ids(x.pre), ids(y.pre)];
+  for (let k = 0; k < Math.max(i.length, j.length); k++) {
+    if (i[k] === undefined) return -1;
+    if (j[k] === undefined) return 1;
+    const [n, m] = [/^\d+$/.test(i[k]), /^\d+$/.test(j[k])];
+    const c = n && m ? Number(i[k]) - Number(j[k]) : n ? -1 : m ? 1 : i[k].localeCompare(j[k]);
+    if (c) return c;
+  }
   return 0;
 }
 
@@ -46,7 +63,7 @@ export function toVuln(v: any, dep: Pick<Dep, "ecosystem" | "name">): Vuln {
   const fixed = new Set<string>();
   for (const a of v.affected ?? [])
     if (a.package?.ecosystem === dep.ecosystem && String(a.package?.name).toLowerCase() === dep.name.toLowerCase())
-      for (const r of a.ranges ?? []) for (const e of r.events ?? []) if (e.fixed) fixed.add(String(e.fixed));
+      for (const r of a.ranges ?? []) if (r.type !== "GIT") for (const e of r.events ?? []) if (e.fixed) fixed.add(String(e.fixed)); // GIT ranges hold commit hashes, not versions
   const { severity, score } = severityOf(v);
   const text = String(v.summary || String(v.details ?? "").split("\n")[0] || "No description provided").trim();
   return {

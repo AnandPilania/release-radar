@@ -89,6 +89,8 @@ export const ADVISORIES: Record<string, any> = {
   "GHSA-bbbb-qs": { id: "GHSA-bbbb-qs", aliases: ["CVE-2022-24999"], summary: "qs prototype pollution", severity: [{ type: "CVSS_V3", score: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H" }], affected: aff("qs", "npm", "6.5.3", "6.7.3") },
   "GHSA-cccc-laravel": { id: "GHSA-cccc-laravel", aliases: ["CVE-2026-1111"], summary: "Laravel encrypter flaw", database_specific: { severity: "MODERATE" }, affected: aff("laravel/framework", "Packagist", "11.10.0") },
   "GHSA-eeee-mocha": { id: "GHSA-eeee-mocha", aliases: [], summary: "Withdrawn advisory", withdrawn: "2026-01-01T00:00:00Z", affected: aff("mocha", "npm", "10.0.1") },
+  "GHSA-pppp-django": { id: "GHSA-pppp-django", aliases: ["CVE-2021-1"], summary: "Django SQL injection", database_specific: { severity: "HIGH" }, affected: aff("django", "PyPI", "3.2.5") },
+  "RUSTSEC-0000-smallvec": { id: "RUSTSEC-0000-smallvec", aliases: [], summary: "smallvec buffer overflow", database_specific: { severity: "CRITICAL" }, affected: aff("smallvec", "crates.io", "1.6.1") },
   "GHSA-ffff-phpunit": { id: "GHSA-ffff-phpunit", aliases: [], summary: "phpunit dev-only issue", database_specific: { severity: "HIGH" }, affected: aff("phpunit/phpunit", "Packagist", "10.5.1") },
 };
 /** package@version -> advisory ids (lodash has TWO pages to exercise pagination). */
@@ -98,6 +100,8 @@ export const HITS: Record<string, string[]> = {
   "Packagist:laravel/framework@11.9.0": ["GHSA-cccc-laravel"],
   "npm:mocha@10.0.0": ["GHSA-eeee-mocha"],
   "Packagist:phpunit/phpunit@10.5.0": ["GHSA-ffff-phpunit"],
+  "PyPI:django@3.2.0": ["GHSA-pppp-django"],
+  "crates.io:smallvec@1.6.0": ["RUSTSEC-0000-smallvec"],
 };
 
 /** A local stand-in for api.osv.dev (same endpoints and response shapes). */

@@ -9,3 +9,4 @@ state*.json
 *.log
 .DS_Store
 *_CHECKLIST.md
+*.html

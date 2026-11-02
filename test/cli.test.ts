@@ -52,7 +52,7 @@ test("cli: clean project exits 0; bad input / no manifests / unreachable OSV exi
         assert.equal((await run(["scan", clean, "--nope"])).code, 2);
         const empty = await run(["scan", await makeProject({ "x.txt": "y" })], { OSV_API_URL: osv.url });
         assert.equal(empty.code, 2);
-        assert.match(empty.err, /No package\.json or composer\.json/);
+        assert.match(empty.err, /No supported dependency files found/);
         const down = await run(["scan", clean], { OSV_API_URL: "http://127.0.0.1:9" });
         assert.equal(down.code, 2);
         assert.match(down.err, /Cannot reach OSV/);
@@ -60,7 +60,9 @@ test("cli: clean project exits 0; bad input / no manifests / unreachable OSV exi
 });
 
 test("cli: --help and --version", async () => {
-    assert.match((await run(["--help"])).out, /Check package\.json \/ composer\.json/);
+    const help = (await run(["--help"])).out;
+    assert.match(help, /Check the dependencies in dir/);
+    assert.match(help, /--html <file>/);
     assert.match((await run(["--version"])).out, /^\d+\.\d+\.\d+/);
 });
 

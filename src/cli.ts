@@ -1,16 +1,20 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { ORDER, type Severity } from "./scan/cvss.js";
-import { renderText, toJson } from "./scan/report.js";
+import { renderHtml, renderText, toJson } from "./scan/report.js";
 import { scan, toAlert } from "./scan/scan.js";
 import { buildNotifiers, render } from "./notifiers.js";
 
 const HELP = `release-radar: release & security alerts
 
 Usage
-  release-radar [scan] [dir]     Check package.json / composer.json (+ lockfiles) in dir (default: .)
-                                 for known vulnerabilities (OSV.dev). Exit 1 if any are found.
+  release-radar [scan] [dir]     Check the dependencies in dir (default: .) for known vulnerabilities (OSV.dev).
+                                 Reads package.json + package-lock.json / yarn.lock / pnpm-lock.yaml, composer.json +
+                                 composer.lock, requirements.txt / Pipfile.lock / poetry.lock, Cargo.lock.
+                                 Exit 1 if any are found.
   release-radar daemon [flags]   Run the always-on alerting service (feeds, GitHub webhook, mail).
 
 Scan options
@@ -20,6 +24,7 @@ Scan options
   --notify                 Also send ONE summary alert to your configured channels (Slack, Telegram, ...)
   --env-file <path>        Load channel settings from this file (the project's own .env is never read)
   --json                   Machine-readable output
+  --html <file>            Also write a standalone HTML report (Tailwind via CDN) to <file>
   --no-fail                Always exit 0 (default: exit 1 when vulnerabilities are found)
   -h, --help   -v, --version
 
@@ -48,6 +53,7 @@ async function main() {
         notify: { type: "boolean" },
         "env-file": { type: "string" },
         json: { type: "boolean" },
+        html: { type: "string" },
         "no-fail": { type: "boolean" },
         help: { type: "boolean", short: "h" },
         version: { type: "boolean", short: "v" },
@@ -69,6 +75,14 @@ async function main() {
     if (v["env-file"]) process.loadEnvFile(v["env-file"]);
     const r = await scan(a.positionals[0] ?? ".", { minSeverity: v["min-severity"] as Severity, prodOnly: v.prod, ignore: v.ignore });
     console.log(v.json ? JSON.stringify(toJson(r), null, 2) : renderText(r, !!process.stdout.isTTY && !process.env.NO_COLOR));
+
+    if (v.html !== undefined) {
+      if (!v.html.trim()) throw new Error("--html needs a file path, e.g. --html report.html");
+      const file = resolve(v.html);
+      await mkdir(dirname(file), { recursive: true });
+      await writeFile(file, renderHtml(r)); // written for clean scans too: "nothing found" is worth keeping as evidence
+      console.error(`HTML report written to ${file}`);
+    }
 
     if (v.notify && r.findings.length) {
       const channels = buildNotifiers();

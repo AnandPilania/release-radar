@@ -4,7 +4,7 @@
 
 Two ways to use it:
 
-- **`npx release-radar`**: run it inside any project. It reads `package.json` / `composer.json` (and their lockfiles) and tells you which of **your exact dependency versions** have known vulnerabilities.
+- **`npx release-radar`**: run it inside any project. It reads your manifests and lockfiles (npm, Yarn, pnpm, Composer, pip/Poetry/Pipenv, Cargo) and tells you which of **your exact dependency versions** have known vulnerabilities.
 - **`release-radar daemon`**: an always-on service that watches feeds, GitHub and mailing lists and alerts you the moment something is published.
 
 Self-hosted, one small Node.js process, no database, no API keys.
@@ -39,7 +39,7 @@ Items are classified as **security** when their title or summary matches `securi
 From a project directory:
 
 ```bash
-npx release-radar              # scans ./package.json and ./composer.json
+npx release-radar              # scans the current directory
 npx release-radar ../my-app    # or point it at a directory
 ```
 
@@ -59,8 +59,12 @@ It checks the versions you actually have, not the ranges you declared:
 
 | Ecosystem | Exact versions come from | Fallbacks (with a warning printed) |
 |---|---|---|
-| npm | `package-lock.json` / `npm-shrinkwrap.json`, **including transitive dependencies** | installed `node_modules/<pkg>`, then the lowest version the range allows |
+| npm | `package-lock.json` / `npm-shrinkwrap.json`, `yarn.lock` (v1 and Berry) or `pnpm-lock.yaml` (v5 to v9), **including transitive dependencies**. `package.json`'s `packageManager` field picks one when several exist | installed `node_modules/<pkg>`, then the lowest version the range allows |
 | Composer (Packagist) | `composer.lock`, **including transitive dependencies** | the lowest version the constraint allows |
+| PyPI | `Pipfile.lock`, `poetry.lock`, and exact `==` pins in `requirements.txt` / `requirements-dev.txt` / `dev-requirements.txt` | none: unpinned lines are counted and reported as **not checked** |
+| crates.io | `Cargo.lock` (registry crates) | none |
+
+Anything that can't be matched to a registry version (git, tarball and file dependencies, Composer `dev-*` branches, unpinned Python lines) is **listed in the report as not checked**, never silently dropped. Lockfiles that don't record direct vs transitive (Python, Cargo) are shown as such rather than guessed.
 
 Data comes from [OSV.dev](https://osv.dev) (GitHub Security Advisories, the PHP security-advisories database and more). No account or key is needed, and only package names and versions are sent, never your code.
 
@@ -72,6 +76,7 @@ Data comes from [OSV.dev](https://osv.dev) (GitHub Security Advisories, the PHP 
 | `--notify` | Also send **one** summary alert to your Slack / Telegram / email / WhatsApp |
 | `--env-file <path>` | Where to read channel settings for `--notify`. The scanned project's own `.env` is **never** read |
 | `--json` | Machine-readable output |
+| `--html <file>` | Also write a standalone HTML report (Tailwind via CDN, filterable, printable) to `<file>`. Written for clean scans too |
 | `--no-fail` | Always exit 0 |
 
 **Exit codes:** `0` clean, `1` vulnerabilities found, `2` error. That makes it a drop-in CI gate:
@@ -82,7 +87,7 @@ Data comes from [OSV.dev](https://osv.dev) (GitHub Security Advisories, the PHP 
 
 Run the always-on service the same way: `npx release-radar daemon` (flags: `--once`, `--dry`, `--replay N`, `--test-alert`).
 
-> **Scope.** This reports *known* vulnerabilities in the *versions you have installed*. It does not tell you whether your code calls the vulnerable function, and it doesn't check the PHP or Node.js runtime version itself (the daemon's feeds are for that). `yarn.lock` and `pnpm-lock.yaml` aren't read yet: without a `package-lock.json` only direct dependencies are checked, and the report says so.
+> **Scope.** This reports *known* vulnerabilities in the *versions pinned in your lockfiles*. It does not tell you whether your code calls the vulnerable function (no reachability analysis), and it doesn't check the PHP, Node.js or Python runtime version itself (the daemon's feeds are for that). A clean result means "no known advisory", not "safe". The HTML and text reports state what was read, what was **not** checked, and what your `--ignore` / `--min-severity` / `--prod` options hid. Without a lockfile only direct dependencies are checked, and the report says so.
 
 ## Quick start
 
@@ -231,7 +236,7 @@ TimeoutStopSec=15
 
 ## Known limitations
 
-- `scan` needs network access to `api.osv.dev` (set `OSV_API_URL` to use a mirror). Not yet supported: `yarn.lock`, `pnpm-lock.yaml`, Composer `dev-*` branch versions.
+- `scan` needs network access to `api.osv.dev` (set `OSV_API_URL` to use a mirror). Not yet supported: Go, Maven/Gradle, RubyGems, NuGet, and Composer `dev-*` branch versions (reported as not checked). Python projects need pinned versions (`==`) or a lockfile.
 - Alerts go to one recipient per channel (one Slack webhook, one chat id, one `MAIL_TO`, one WhatsApp number).
 - No per-repo filter for pre-releases or drafts on poll/mail paths (draft webhooks are ignored).
 - Tag-only feeds such as `.../tags.atom` can be noisy (every build tag alerts). Check volume with `npm run check:feeds` before using `notify: "all"`.
@@ -244,7 +249,7 @@ npm install
 npm run verify      # typecheck + tests + build + audit; same as CI
 ```
 
-Layout: `src/cli.ts` (`npx` entry: `scan` and `daemon`) · `src/scan/` (manifest readers, OSV client, CVSS, report) · `src/index.ts` (daemon wiring, flags, shutdown) · `runner.ts` (one poll cycle) · `pipeline.ts` (dedupe, delivery, retry) · `sources.ts` (fetch and parse) · `webhook.ts` · `mail.ts` · `notifiers.ts` · `config.ts` (validation) · `store.ts` (atomic state).
+Layout: `src/cli.ts` (`npx` entry: `scan` and `daemon`) · `src/scan/` (manifest and lockfile readers, OSV client, CVSS, text/JSON/HTML reports) · `src/index.ts` (daemon wiring, flags, shutdown) · `runner.ts` (one poll cycle) · `pipeline.ts` (dedupe, delivery, retry) · `sources.ts` (fetch and parse) · `webhook.ts` · `mail.ts` · `notifiers.ts` · `config.ts` (validation) · `store.ts` (atomic state).
 
 Tests use Node's built-in runner (`node:test`) and cover signature verification, event mapping, feed parsing, dedupe across paths, delivery failure and retry, secret redaction, config validation and state recovery.
 

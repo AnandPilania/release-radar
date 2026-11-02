@@ -1,6 +1,6 @@
 import type { Item } from "../types.js";
 import { meets, ORDER, type Severity } from "./cvss.js";
-import { readProject, type Dep, type Project } from "./manifests.js";
+import { readProject, type Dep, type Ecosystem, type Project } from "./manifests.js";
 import { cmpVersion, depKey, lookup, type Vuln } from "./osv.js";
 
 export interface Finding extends Vuln {
@@ -9,43 +9,54 @@ export interface Finding extends Vuln {
   upgradeTo?: string;
 }
 
+export interface ScanOptions {
+  minSeverity?: Severity;
+  prodOnly?: boolean;
+  ignore?: string[];
+}
+
 export interface ScanResult {
   project: Project;
-  checked: { npm: number; Packagist: number };
+  /** Packages sent to OSV, per ecosystem (only ecosystems that were present). */
+  checked: Partial<Record<Ecosystem, number>>;
   findings: Finding[];
   counts: Record<Severity, number>;
+  /** What the filters hid, so a clean-looking report can't hide that it was filtered. */
+  hidden: { ignored: number; belowSeverity: number; devSkipped: number };
+  options: Required<ScanOptions>;
+  scannedAt: string;
 }
 
 const rank = (s: Severity) => (s === "unknown" ? 2.5 : ORDER.indexOf(s)); // unknown sorts between moderate and high
 
-export async function scan(
-  dir: string,
-  o: { minSeverity?: Severity; prodOnly?: boolean; ignore?: string[] } = {},
-): Promise<ScanResult> {
+export async function scan(dir: string, o: ScanOptions = {}): Promise<ScanResult> {
   const project = await readProject(dir);
   const deps = project.deps.filter((d) => !(o.prodOnly && d.dev));
   const hits = await lookup(deps);
   const ignore = new Set((o.ignore ?? []).map((s) => s.trim().toUpperCase()));
 
   const findings: Finding[] = [];
+  const hidden = { ignored: 0, belowSeverity: 0, devSkipped: project.deps.length - deps.length };
   for (const d of deps)
     for (const v of hits.get(depKey(d)) ?? []) {
-      if (ignore.has(v.id.toUpperCase()) || v.aliases.some((a) => ignore.has(a.toUpperCase()))) continue;
-      if (!meets(v.severity, o.minSeverity ?? "low")) continue;
+      if (ignore.has(v.id.toUpperCase()) || v.aliases.some((a) => ignore.has(a.toUpperCase()))) { hidden.ignored++; continue; }
+      if (!meets(v.severity, o.minSeverity ?? "low")) { hidden.belowSeverity++; continue; }
       findings.push({ ...v, dep: d, upgradeTo: v.fixed.find((f) => cmpVersion(f, d.version) > 0) });
     }
   findings.sort((a, b) => rank(b.severity) - rank(a.severity) || a.dep.name.localeCompare(b.dep.name));
 
   const counts: Record<Severity, number> = { critical: 0, high: 0, moderate: 0, low: 0, unknown: 0 };
   for (const f of findings) counts[f.severity]++;
+  const checked: ScanResult["checked"] = {};
+  for (const d of deps) checked[d.ecosystem] = (checked[d.ecosystem] ?? 0) + 1;
   return {
     project,
-    checked: {
-      npm: deps.filter((d) => d.ecosystem === "npm").length,
-      Packagist: deps.filter((d) => d.ecosystem === "Packagist").length,
-    },
+    checked,
     findings,
     counts,
+    hidden,
+    options: { minSeverity: o.minSeverity ?? "low", prodOnly: !!o.prodOnly, ignore: o.ignore ?? [] },
+    scannedAt: new Date().toISOString(),
   };
 }
 

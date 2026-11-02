@@ -1,6 +1,6 @@
 {
     "name": "release-radar",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "type": "module",
     "bin": {
         "release-radar": "dist/cli.js"
@@ -31,7 +31,8 @@
         "fast-xml-parser": "^5.11.2",
         "imapflow": "^1.0.164",
         "mailparser": "^3.14.1",
-        "nodemailer": "^10.3.1"
+        "nodemailer": "^10.3.1",
+        "yaml": "^2.9.1"
     },
     "devDependencies": {
         "@types/mailparser": "^3.4.5",
